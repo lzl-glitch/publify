@@ -255,39 +255,65 @@ Content-Type: application/json
 
 ## Authentication Flow
 
+### Primary Authentication Strategy
+
+**Web Dashboard**: Session-based authentication
+- All web routes use session cookies
+- Sessions stored in Redis with 7-day expiration
+- CSRF protection enabled for all forms
+
+**REST API**: API Key-based authentication
+- All `/api/v1/*` routes require API Key
+- API Keys stored in database with last_used tracking
+- No JWT used (simpler for MVP)
+
 ### Web Login (Session-based)
 
 ```
 User enters username/password
-  → Validate credentials
-  → Create session
-  → Store in Redis (key: session_id, value: user_id)
-  → Set cookie (session_id)
+  → Validate credentials against database
+  → Create session with UUID
+  → Store in Redis (key: session_id, value: user_id, ttl: 7 days)
+  → Set secure cookie (session_id)
   → Redirect to dashboard
 ```
 
-### API Authentication (JWT/API Key)
+### API Authentication (API Key)
 
 ```
 Request with Header: Authorization: Bearer {api_key}
-  → Middleware validates API key
-  → Query key from database
+  → Middleware validates API key from database
+  → Check key is_active status
+  → Update last_used timestamp
   → Extract user_id
-  → Store in request.state
+  → Store in request.state.current_user
   → Continue processing
 ```
 
 ### Xiaohongshu OAuth Flow
 
+**Configuration:**
+- Authorization URL: `https://open.xiaohongshu.com/oauth/authorize`
+- Token URL: `https://open.xiaohongshu.com/oauth/access_token`
+- Required Scopes: `write_public` (publish content), `read_public` (read user info)
+- Token Lifetime: Typically 30 days (configurable via refresh_token)
+
 ```
 User clicks "Authorize Xiaohongshu"
-  → Redirect to Xiaohongshu authorization page
-  → User approves
-  → Xiaohongshu redirects to /xiaohongshu/callback?code=xxx
-  → Backend exchanges code for access_token
-  → Store token in database
-  → Redirect to dashboard
+  → Redirect to Xiaohongshu authorization page with client_id & redirect_uri
+  → User approves authorization
+  → Xiaohongshu redirects to /xiaohongshu/callback?code=xxx&state=xxx
+  → Backend validates state parameter (CSRF protection)
+  → Backend POSTs to token endpoint with code to get access_token
+  → Store access_token, refresh_token, expires_at in database
+  → Redirect to dashboard with success message
 ```
+
+**Token Refresh Strategy:**
+- Check token expiration before each API call
+- If expired, use refresh_token to obtain new access_token
+- If refresh fails, notify user to re-authorize
+- Maximum 3 retry attempts for refresh operations
 
 ### Security Measures
 
@@ -322,21 +348,164 @@ User clicks "Authorize Xiaohongshu"
 - Frontend uploads directly to Qiniu/Tencent Cloud
 - Returns CDN URL
 - Backend only stores URL
+- Supported formats: JPEG, PNG, WEBP
+- Size limit: 10MB per image
+- Maximum 9 images per post (Xiaohongshu limit)
 
 **Videos:**
 - Frontend uploads directly to Qiniu/Tencent Cloud
 - Returns CDN URL
 - Validate format (MP4) and size (100MB limit)
+- Duration limit: 5 minutes (Xiaohongshu recommendation)
+- Resolution: 720p minimum, 1080p recommended
+- Aspect ratio: 9:16 (vertical) or 1:1 (square)
+
+**Chinese Platform Content Requirements:**
+- Text length: 1-1000 characters
+- Hashtags: Maximum 30 tags per post
+- No external links (platform policy)
+- Watermark detection: Videos may be rejected if heavily watermarked
 
 ### Error Handling
 
-| Error Scenario | Handling |
-|----------------|----------|
-| Not authorized | Return 401, prompt to authorize |
-| Token expired | Auto-refresh and retry |
-| Content violation | Return error, log reason |
-| Network timeout | Retry 3 times, then fail |
-| Platform rate limit | Delay and retry |
+| Error Scenario | HTTP Status | Handling Strategy |
+|----------------|-------------|-------------------|
+| Not authorized | 401 | Return error with link to authorize page |
+| Token expired | 401 | Auto-refresh and retry once |
+| Invalid API Key | 403 | Log attempt, return generic error |
+| Invalid content | 400 | Specific validation error message |
+| Media too large | 413 | Return max size allowed |
+| Content violation | 422 | Return platform rejection reason |
+| Network timeout | 504 | Retry 3 times with exponential backoff |
+| Platform unavailable | 503 | Retry after 60 seconds |
+| Rate limit (429) | 429 | Delay using Retry-After header, retry once |
+| Refresh token failed | 401 | Mark auth as invalid, notify user to re-authorize |
+| Platform API error | 502 | Log error details, return generic message |
+
+**Retry Policy:**
+- Maximum retry attempts: 3
+- Backoff strategy: Exponential (1s, 2s, 4s)
+- Don't retry: Client errors (4xx except 429)
+- Retry: Server errors (5xx) and network failures
+
+### Environment Variables
+
+```env
+# Application
+APP_NAME=Publify
+APP_ENV=development
+SECRET_KEY=your-secret-key-here
+
+# Database
+DATABASE_URL=sqlite:///./publify.db
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# Qiniu Cloud (Development)
+QINIU_ACCESS_KEY=your-access-key
+QINIU_SECRET_KEY=your-secret-key
+QINIU_BUCKET=your-bucket-name
+QINIU_DOMAIN=https://cdn.example.com
+
+# Xiaohongshu (To be filled)
+XIAOHONGSHU_CLIENT_ID=
+XIAOHONGSHU_CLIENT_SECRET=
+XIAOHONGSHU_REDIRECT_URI=http://localhost:8000/xiaohongshu/callback
+```
+
+## Database Migration Strategy
+
+**Tool:** Alembic
+
+**Migration Workflow:**
+```bash
+# Create new migration
+alembic revision --autogenerate -m "description"
+
+# Apply migrations
+alembic upgrade head
+
+# Rollback one migration
+alembic downgrade -1
+```
+
+**Migration Policy:**
+- Never modify existing migrations (create new ones)
+- Test migrations on development database first
+- Backup production database before applying migrations
+- Use `--autogenerate` for simple schema changes
+- Manual migrations for complex data transformations
+
+**Data Backup Strategy:**
+- Development: SQLite file copied daily
+- Production: Supabase/Neon automatic backups (7-day retention)
+- Export schema and data weekly: `pg_dump` or SQLite `.dump`
+
+## Security Hardening
+
+### Authentication Security
+- Password hashing: bcrypt with 12 rounds
+- API Key format: `pk_live_{random_32_chars}` or `pk_test_{random_32_chars}`
+- Session cookie: `Secure`, `HttpOnly`, `SameSite=Strict`
+- Rate limiting per IP: 100 requests/minute for auth endpoints
+
+### Input Validation
+- Username: 3-50 alphanumeric characters only
+- Password: Minimum 8 characters (enforced on frontend and backend)
+- API Key validation: Format check before database query
+- Content sanitization: Strip HTML tags, escape special characters
+
+### CSRF Protection
+- All state-changing web forms require CSRF token
+- Token stored in session, validated on POST
+- AJAX requests include `X-CSRF-Token` header
+
+### API Security
+- API Key validated against database for each request
+- Last-used timestamp updated on successful auth
+- Failed auth attempts logged (monitor for abuse)
+- CORS configured for specific domains only
+
+### Secrets Management
+- Never commit `.env` files
+- Use environment variables for all secrets
+- Railway: Use secret management (never in public repo)
+
+## Performance Considerations
+
+### Database Indexing
+```sql
+-- Users table
+CREATE INDEX idx_users_username ON users(username);
+
+-- API Keys table
+CREATE INDEX idx_api_keys_key ON api_keys(key);
+CREATE INDEX idx_api_keys_user_id ON api_keys(user_id);
+
+-- Xiaohongshu Auth table
+CREATE INDEX idx_xiaohongshu_auth_user_id ON xiaohongshu_auth(user_id);
+
+-- Posts table
+CREATE INDEX idx_posts_user_id ON posts(user_id);
+CREATE INDEX idx_posts_status ON posts(status);
+CREATE INDEX idx_posts_created_at ON posts(created_at DESC);
+```
+
+### Caching Strategy
+- User sessions: Redis with 7-day TTL
+- API Key validation: Cache frequently used keys (5-minute TTL)
+- Xiaohongshu auth status: Cache until token expires
+
+### Async Operations
+- All database queries use SQLAlchemy async
+- External API calls (Xiaohongshu) are async with httpx
+- File uploads to cloud storage are async
+
+### Response Optimization
+- Pagination for list endpoints (default: 20 items, max: 100)
+- Database query result limits enforced
+- Compression enabled for API responses (gzip)
 
 ## Technology Stack
 
@@ -348,8 +517,7 @@ uvicorn              # ASGI server
 sqlalchemy           # ORM
 alembic              # Database migrations
 pydantic             # Data validation
-python-jose          # JWT handling
-passlib              # Password hashing
+passlib[bcrypt]      # Password hashing
 python-multipart     # File uploads
 httpx                # HTTP client (Xiaohongshu API)
 redis                # Redis client
@@ -390,6 +558,70 @@ XIAOHONGSHU_CLIENT_ID=
 XIAOHONGSHU_CLIENT_SECRET=
 XIAOHONGSHU_REDIRECT_URI=http://localhost:8000/xiaohongshu/callback
 ```
+
+## Operational Monitoring
+
+### Metrics to Track
+
+**Application Metrics:**
+- Request count by endpoint
+- Response time percentiles (p50, p95, p99)
+- Error rate by endpoint
+- Active user count
+- Publishing success/failure rate by platform
+
+**Business Metrics:**
+- Total posts published
+- Posts by platform
+- Posts by content type (text/image/video)
+- API keys created/active
+
+**Infrastructure Metrics:**
+- CPU usage
+- Memory usage
+- Database connection pool utilization
+- Redis memory usage
+
+### Monitoring Setup
+
+**Development:**
+- Log to console with structured JSON
+- Manual monitoring of logs
+
+**Production (Railway):**
+- Railway built-in metrics (CPU, memory)
+- Log streaming via Railway CLI
+- Error tracking via Sentry (optional, free tier)
+
+### Alerting Strategy
+
+**Critical Alerts (immediate):**
+- Application crash (Railway auto-restarts)
+- Database connection failures
+- Redis connection failures
+
+**Warning Alerts (daily check):**
+- Error rate > 5%
+- Response time p95 > 2s
+- Publishing failure rate > 10%
+
+### Log Retention
+
+- Development: Unlimited (local disk)
+- Production: 7 days (Railway logs)
+- Export logs monthly for long-term storage
+
+### Health Check Endpoint
+
+```
+GET /health
+Response: {"status": "ok", "version": "1.0.0"}
+```
+
+Checks:
+- Database connectivity
+- Redis connectivity
+- External service status (Xiaohongshu API - optional)
 
 ## Logging Strategy
 
