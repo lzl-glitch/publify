@@ -388,32 +388,6 @@ User clicks "Authorize Xiaohongshu"
 - Don't retry: Client errors (4xx except 429)
 - Retry: Server errors (5xx) and network failures
 
-### Environment Variables
-
-```env
-# Application
-APP_NAME=Publify
-APP_ENV=development
-SECRET_KEY=your-secret-key-here
-
-# Database
-DATABASE_URL=sqlite:///./publify.db
-
-# Redis
-REDIS_URL=redis://localhost:6379
-
-# Qiniu Cloud (Development)
-QINIU_ACCESS_KEY=your-access-key
-QINIU_SECRET_KEY=your-secret-key
-QINIU_BUCKET=your-bucket-name
-QINIU_DOMAIN=https://cdn.example.com
-
-# Xiaohongshu (To be filled)
-XIAOHONGSHU_CLIENT_ID=
-XIAOHONGSHU_CLIENT_SECRET=
-XIAOHONGSHU_REDIRECT_URI=http://localhost:8000/xiaohongshu/callback
-```
-
 ## Database Migration Strategy
 
 **Tool:** Alembic
@@ -471,6 +445,98 @@ alembic downgrade -1
 - Never commit `.env` files
 - Use environment variables for all secrets
 - Railway: Use secret management (never in public repo)
+
+## API Rate Limiting
+
+### Rate Limit Strategy
+
+**Implementation:** Redis-based rate limiting with sliding window
+
+**Limits by Endpoint Type:**
+
+| Endpoint Type | Rate Limit | Window |
+|---------------|------------|--------|
+| Authentication (login, register) | 10 requests | per IP per minute |
+| API Key creation | 5 requests | per user per hour |
+| Publish API | 60 requests | per API key per minute |
+| Query API (posts history) | 100 requests | per API key per minute |
+| Web dashboard | 120 requests | per session per minute |
+
+### Rate Limit Response
+
+When rate limit is exceeded:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "RATE_LIMITED",
+    "message": "Rate limit exceeded",
+    "details": {
+      "limit": 60,
+      "remaining": 0,
+      "reset_at": "2026-03-16T12:01:00Z"
+    }
+  }
+}
+```
+
+HTTP Headers:
+```
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1678966860
+Retry-After: 30
+```
+
+### Implementation Notes
+- Rate limit keys format: `ratelimit:{endpoint}:{identifier}` (e.g., `ratelimit:publish:pk_live_abc123`)
+- Use Redis INCR with TTL for atomic operations
+- Rate limits are configurable via environment variables
+
+### Chinese Platform Content Moderation
+
+**Important:** While this MVP does not include automated sensitive content filtering, the following guidelines are documented for future implementation and user awareness.
+
+### Prohibited Content Categories
+
+**Legal Requirements (China):**
+- Content violating national laws and regulations
+- Pornographic or vulgar material
+- False information or rumors
+- Content endangering national security
+- Violence or terrorism-related content
+
+**Platform-Specific Rules:**
+- Xiaohongshu: No promotional links, no excessive hashtags
+- All platforms: No external links in posts (platform policy)
+
+### Recommended Pre-Publication Checks
+
+**For User Content:**
+1. Text length validation (1-1000 characters)
+2. Image format and size validation
+3. Video format, size, and duration validation
+4. Strip HTML tags from text content
+5. Escape special characters
+
+**Future Enhancement - Automated Filtering:**
+- Integration with content moderation APIs (Aliyun, Tencent Cloud)
+- Keyword-based filtering
+- Image recognition for inappropriate content
+- Manual review queue for flagged content
+
+### User Responsibility
+
+Users are responsible for:
+- Ensuring their content complies with Chinese laws
+- Following platform-specific content guidelines
+- Understanding that violating content may result in:
+  - Post rejection by platform
+  - Account suspension
+  - Legal consequences
+
+**Disclaimer Displayed on Publish:**
+"Users are responsible for ensuring their content complies with all applicable laws and platform guidelines."
 
 ## Performance Considerations
 
