@@ -1,123 +1,123 @@
-# Publify MVP Design Document
+# Publify MVP 设计文档
 
-**Project Name:** Publify
-**Date:** 2026-03-16
-**Status:** Design Approved
-**Version:** 1.0
+**项目名称：** Publify
+**日期：** 2026-03-16
+**状态：** 设计已批准
+**版本：** 1.0
 
-## Overview
+## 概述
 
-Publify is a social media publishing API service targeting Chinese domestic platforms, enabling AI agents to automatically publish content to platforms like Xiaohongshu (Little Red Book).
+Publify 是一个面向中国国内社交媒体平台的发布 API 服务，让 AI 代理能够自动发布内容到小红书等平台。
 
-**Target Users:** AI application developers, content creators, and enterprises in China.
+**目标用户：** 中国的 AI 应用开发者、内容创作者和企业。
 
-**Core Value:** Allow AI to publish content to Chinese social media platforms via API calls.
+**核心价值：** 让 AI 能够通过 API 调用发布内容到中国社交媒体平台。
 
-## Project Scope (Phase 1 - MVP)
+## 项目范围（第一阶段 - MVP）
 
-### Included Features
-- User registration and authentication (username + password)
-- API Key generation and management
-- Xiaohongshu (Little Red Book) OAuth integration
-- Content publishing: text, images, and video
-- Simple web dashboard for management
-- Publishing history query
+### 包含功能
+- 用户注册和认证（用户名 + 密码）
+- API Key 生成和管理
+- 小红书 OAuth 集成
+- 内容发布：文字、图片和视频
+- 简单的 Web 管理后台
+- 发布记录查询
 
-### Excluded Features (Future Phases)
-- Sensitive content filtering
-- Scheduled publishing
-- Webhook notifications
-- API rate limiting
-- Additional platforms (Weibo, Bilibili, Douyin, etc.)
+### 不包含功能（后续阶段）
+- 敏感内容过滤
+- 定时发布
+- Webhook 通知
+- API 速率限制
+- 其他平台（微博、B站、抖音等）
 
-## Architecture
+## 架构设计
 
-### Approach: Monolithic Service
+### 方案：单体服务
 
-Single FastAPI application containing all functionality.
+单个 FastAPI 应用包含所有功能。
 
-**Rationale:**
-- Simplest to develop and deploy
-- Sufficient for MVP scope
-- Can be split into microservices later if needed
+**理由：**
+- 开发和部署最简单
+- MVP 范围足够
+- 需要时可以拆分为微服务
 
-### System Architecture Diagram
+### 系统架构图
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                      Web Browser                         │
-│  (Login, Dashboard, API Key Management, Auth Flow)      │
+│                      Web 浏览器                           │
+│  (登录、仪表盘、API Key 管理、授权流程)                   │
 └──────────────────────┬──────────────────────────────────┘
                        │ HTML/JSON
                        ↓
 ┌─────────────────────────────────────────────────────────┐
-│                    FastAPI Application                   │
+│                    FastAPI 应用                          │
 │  ┌───────────────────────────────────────────────────┐  │
-│  │  Authentication Middleware (Session/JWT)          │  │
-│  │  Route Handlers                                   │  │
-│  │  Business Logic Services                          │  │
+│  │  认证中间件 (Session/JWT)                         │  │
+│  │  路由处理器                                        │  │
+│  │  业务逻辑服务                                      │  │
 │  └───────────────────────────────────────────────────┘  │
 └────────┬──────────────────────────────┬────────────────┘
          │                              │
          ↓                              ↓
 ┌─────────────────┐            ┌─────────────────┐
 │  PostgreSQL     │            │     Redis       │
-│  - Users        │            │  - Sessions     │
-│  - API Keys     │            │  - Cache        │
-│  - Auth Data    │            │  - Tokens       │
-│  - Posts        │            │                 │
+│  - 用户数据      │            │  - 会话         │
+│  - API Keys     │            │  - 缓存         │
+│  - 授权信息      │            │  - 令牌         │
+│  - 发布记录      │            │                 │
 └─────────────────┘            └─────────────────┘
          │
          ↓
 ┌─────────────────────────────────────────────────────────┐
-│              External Services                           │
+│              外部服务                                     │
 │  ┌────────────┐  ┌────────────┐  ┌──────────────┐      │
-│  │  Qiniu     │  │ Tencent    │  │ Xiaohongshu  │      │
-│  │  Cloud     │  │ COS        │  │  API         │      │
-│  │ (Dev)      │  │ (Prod)     │  │              │      │
+│  │  七牛云    │  │ 腾讯云     │  │   小红书      │      │
+│  │  存储      │  │ COS        │  │   API         │      │
+│  │ (开发)     │  │ (生产)     │  │               │      │
 │  └────────────┘  └────────────┘  └──────────────┘      │
 └─────────────────────────────────────────────────────────┘
 ```
 
-## Project Structure
+## 项目结构
 
 ```
 publify/
 ├── app/
 │   ├── __init__.py
-│   ├── main.py                 # FastAPI application entry
-│   ├── config.py               # Configuration management
-│   ├── models/                 # Database models
+│   ├── main.py                 # FastAPI 应用入口
+│   ├── config.py               # 配置管理
+│   ├── models/                 # 数据库模型
 │   │   ├── __init__.py
-│   │   ├── user.py             # User model
-│   │   ├── api_key.py          # API Key model
-│   │   ├── xiaohongshu.py      # Xiaohongshu auth model
-│   │   └── post.py             # Post record model
-│   ├── schemas/                # Pydantic schemas (API request/response)
+│   │   ├── user.py             # 用户模型
+│   │   ├── api_key.py          # API Key 模型
+│   │   ├── xiaohongshu.py      # 小红书授权模型
+│   │   └── post.py             # 发布记录模型
+│   ├── schemas/                # Pydantic 模式（API 请求/响应）
 │   │   ├── __init__.py
 │   │   ├── user.py
 │   │   ├── auth.py
 │   │   └── publish.py
-│   ├── api/                    # API routes
+│   ├── api/                    # API 路由
 │   │   ├── __init__.py
-│   │   ├── auth.py             # Register/Login
-│   │   ├── dashboard.py        # Dashboard
-│   │   ├── api_keys.py         # API Key management
-│   │   ├── xiaohongshu.py      # Xiaohongshu authorization
-│   │   └── publish.py          # Publishing API
-│   ├── services/               # Business logic
+│   │   ├── auth.py             # 注册/登录
+│   │   ├── dashboard.py        # 仪表盘
+│   │   ├── api_keys.py         # API Key 管理
+│   │   ├── xiaohongshu.py      # 小红书授权
+│   │   └── publish.py          # 发布 API
+│   ├── services/               # 业务逻辑
 │   │   ├── __init__.py
 │   │   ├── auth_service.py
 │   │   ├── xiaohongshu_service.py
-│   │   ├── storage_service.py  # Qiniu/Tencent cloud storage
+│   │   ├── storage_service.py  # 七牛云/腾讯云存储
 │   │   └── publish_service.py
-│   ├── templates/              # Jinja2 templates
+│   ├── templates/              # Jinja2 模板
 │   │   ├── base.html
 │   │   ├── login.html
 │   │   ├── register.html
 │   │   ├── dashboard.html
 │   │   └── ...
-│   └── static/                 # Static files
+│   └── static/                 # 静态文件
 │       ├── css/
 │       └── js/
 ├── tests/
@@ -126,81 +126,81 @@ publify/
 └── README.md
 ```
 
-## Database Schema
+## 数据库设计
 
-### Users Table
+### 用户表 (users)
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | Integer | Primary key |
-| username | String(50) | Unique username |
-| password_hash | String(255) | Bcrypt password hash |
-| created_at | DateTime | Creation timestamp |
-| updated_at | DateTime | Update timestamp |
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | Integer | 主键 |
+| username | String(50) | 唯一用户名 |
+| password_hash | String(255) | Bcrypt 密码哈希 |
+| created_at | DateTime | 创建时间 |
+| updated_at | DateTime | 更新时间 |
 
-### API Keys Table
+### API Keys 表 (api_keys)
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | Integer | Primary key |
-| user_id | Integer | Foreign key → users.id |
-| key | String(64) | Unique API key |
-| name | String(100) | Key name (e.g., "My App") |
-| last_used | DateTime | Last usage timestamp |
-| created_at | DateTime | Creation timestamp |
-| is_active | Boolean | Active status |
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | Integer | 主键 |
+| user_id | Integer | 外键 → users.id |
+| key | String(64) | 唯一 API key |
+| name | String(100) | Key 名称（如"我的应用"） |
+| last_used | DateTime | 最后使用时间 |
+| created_at | DateTime | 创建时间 |
+| is_active | Boolean | 启用状态 |
 
-### Xiaohongshu Auth Table
+### 小红书授权表 (xiaohongshu_auth)
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | Integer | Primary key |
-| user_id | Integer | Foreign key → users.id |
-| access_token | Text | Access token |
-| refresh_token | Text | Refresh token |
-| expires_at | DateTime | Token expiration |
-| created_at | DateTime | Creation timestamp |
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | Integer | 主键 |
+| user_id | Integer | 外键 → users.id |
+| access_token | Text | 访问令牌 |
+| refresh_token | Text | 刷新令牌 |
+| expires_at | DateTime | 令牌过期时间 |
+| created_at | DateTime | 创建时间 |
 
-### Posts Table
+### 发布记录表 (posts)
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | Integer | Primary key |
-| user_id | Integer | Foreign key → users.id |
-| platform | String(20) | Platform name (xiaohongshu) |
-| content_type | String(10) | Type (text/image/video) |
-| content | Text | Text content |
-| media_urls | Text | Media URLs (JSON array) |
-| status | String(20) | Status (pending/success/failed) |
-| error_message | Text | Error details |
-| created_at | DateTime | Creation timestamp |
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | Integer | 主键 |
+| user_id | Integer | 外键 → users.id |
+| platform | String(20) | 平台名称（xiaohongshu） |
+| content_type | String(10) | 类型（text/image/video） |
+| content | Text | 文字内容 |
+| media_urls | Text | 媒体 URL（JSON 数组） |
+| status | String(20) | 状态（pending/success/failed） |
+| error_message | Text | 错误详情 |
+| created_at | DateTime | 创建时间 |
 
-## API Design
+## API 设计
 
-### Web Page Routes
+### Web 页面路由
 
-| Route | Method | Description | Auth Required |
-|-------|--------|-------------|---------------|
-| `/` | GET | Home page | No |
-| `/register` | GET/POST | Registration page | No |
-| `/login` | GET/POST | Login page | No |
-| `/logout` | POST | Logout | Yes |
-| `/dashboard` | GET | Dashboard | Yes |
-| `/api-keys` | GET | API Key management | Yes |
-| `/xiaohongshu/auth` | GET | Xiaohongshu OAuth start | Yes |
-| `/xiaohongshu/callback` | GET | Xiaohongshu OAuth callback | Yes |
-| `/posts` | GET | Publishing history | Yes |
+| 路由 | 方法 | 说明 | 需要认证 |
+|------|------|------|----------|
+| `/` | GET | 首页 | 否 |
+| `/register` | GET/POST | 注册页面 | 否 |
+| `/login` | GET/POST | 登录页面 | 否 |
+| `/logout` | POST | 登出 | 是 |
+| `/dashboard` | GET | 仪表盘 | 是 |
+| `/api-keys` | GET | API Key 管理 | 是 |
+| `/xiaohongshu/auth` | GET | 小红书 OAuth 开始 | 是 |
+| `/xiaohongshu/callback` | GET | 小红书 OAuth 回调 | 是 |
+| `/posts` | GET | 发布历史 | 是 |
 
-### REST API (API Key Authentication)
+### REST API（API Key 认证）
 
-| Route | Method | Description | Auth Required |
-|-------|--------|-------------|---------------|
-| `/api/v1/publish` | POST | Publish content | Yes (API Key) |
-| `/api/v1/posts` | GET | Query publishing records | Yes (API Key) |
-| `/api/v1/posts/{id}` | GET | Query single record | Yes (API Key) |
-| `/api/v1/auth/status` | GET | Authorization status | Yes (API Key) |
+| 路由 | 方法 | 说明 | 需要认证 |
+|------|------|------|----------|
+| `/api/v1/publish` | POST | 发布内容 | 是（API Key） |
+| `/api/v1/posts` | GET | 查询发布记录 | 是（API Key） |
+| `/api/v1/posts/{id}` | GET | 查询单条记录 | 是（API Key） |
+| `/api/v1/auth/status` | GET | 授权状态 | 是（API Key） |
 
-### Publish API Request Example
+### 发布 API 请求示例
 
 ```json
 POST /api/v1/publish
@@ -210,12 +210,12 @@ Content-Type: application/json
 {
   "platform": "xiaohongshu",
   "content_type": "image",
-  "text": "This is the published content",
+  "text": "这是要发布的内容",
   "media_urls": ["https://cdn.example.com/image1.jpg"]
 }
 ```
 
-### Publish API Response Example
+### 发布 API 响应示例
 
 ```json
 {
@@ -229,248 +229,248 @@ Content-Type: application/json
 }
 ```
 
-### Error Response Format
+### 错误响应格式
 
 ```json
 {
   "success": false,
   "error": {
     "code": "AUTH_REQUIRED",
-    "message": "Please authorize Xiaohongshu account first",
+    "message": "请先授权小红书账号",
     "details": {}
   }
 }
 ```
 
-## Error Codes
+## 错误码
 
-| Error Code | Description |
-|------------|-------------|
-| AUTH_REQUIRED | Authorization required |
-| INVALID_API_KEY | Invalid API key |
-| INVALID_CONTENT | Invalid content format |
-| MEDIA_TOO_LARGE | Media file too large |
-| PLATFORM_ERROR | Platform API error |
-| RATE_LIMITED | Rate limit exceeded |
+| 错误码 | 说明 |
+|--------|------|
+| AUTH_REQUIRED | 需要授权 |
+| INVALID_API_KEY | API Key 无效 |
+| INVALID_CONTENT | 内容格式无效 |
+| MEDIA_TOO_LARGE | 媒体文件过大 |
+| PLATFORM_ERROR | 平台 API 错误 |
+| RATE_LIMITED | 超出速率限制 |
 
-## Authentication Flow
+## 认证流程
 
-### Primary Authentication Strategy
+### 主要认证策略
 
-**Web Dashboard**: Session-based authentication
-- All web routes use session cookies
-- Sessions stored in Redis with 7-day expiration
-- CSRF protection enabled for all forms
+**Web 仪表盘：** 基于 Session 的认证
+- 所有 Web 路由使用 session cookies
+- Session 存储在 Redis 中，7天过期
+- 所有表单启用 CSRF 保护
 
-**REST API**: API Key-based authentication
-- All `/api/v1/*` routes require API Key
-- API Keys stored in database with last_used tracking
-- No JWT used (simpler for MVP)
+**REST API：** 基于 API Key 的认证
+- 所有 `/api/v1/*` 路由需要 API Key
+- API Keys 存储在数据库中，跟踪最后使用时间
+- 不使用 JWT（MVP 简化）
 
-### Web Login (Session-based)
-
-```
-User enters username/password
-  → Validate credentials against database
-  → Create session with UUID
-  → Store in Redis (key: session_id, value: user_id, ttl: 7 days)
-  → Set secure cookie (session_id)
-  → Redirect to dashboard
-```
-
-### API Authentication (API Key)
+### Web 登录（基于 Session）
 
 ```
-Request with Header: Authorization: Bearer {api_key}
-  → Middleware validates API key from database
-  → Check key is_active status
-  → Update last_used timestamp
-  → Extract user_id
-  → Store in request.state.current_user
-  → Continue processing
+用户输入用户名/密码
+  → 从数据库验证凭据
+  → 使用 UUID 创建 session
+  → 存储到 Redis（key: session_id, value: user_id, ttl: 7天）
+  → 设置安全 cookie（session_id）
+  → 重定向到仪表盘
 ```
 
-### Xiaohongshu OAuth Flow
-
-**Configuration:**
-- Authorization URL: `https://open.xiaohongshu.com/oauth/authorize`
-- Token URL: `https://open.xiaohongshu.com/oauth/access_token`
-- Required Scopes: `write_public` (publish content), `read_public` (read user info)
-- Token Lifetime: Typically 30 days (configurable via refresh_token)
+### API 认证（API Key）
 
 ```
-User clicks "Authorize Xiaohongshu"
-  → Redirect to Xiaohongshu authorization page with client_id & redirect_uri
-  → User approves authorization
-  → Xiaohongshu redirects to /xiaohongshu/callback?code=xxx&state=xxx
-  → Backend validates state parameter (CSRF protection)
-  → Backend POSTs to token endpoint with code to get access_token
-  → Store access_token, refresh_token, expires_at in database
-  → Redirect to dashboard with success message
+请求头：Authorization: Bearer {api_key}
+  → 中间件从数据库验证 API key
+  → 检查 key 的 is_active 状态
+  → 更新 last_used 时间戳
+  → 提取 user_id
+  → 存储到 request.state.current_user
+  → 继续处理请求
 ```
 
-**Token Refresh Strategy:**
-- Check token expiration before each API call
-- If expired, use refresh_token to obtain new access_token
-- If refresh fails, notify user to re-authorize
-- Maximum 3 retry attempts for refresh operations
+### 小红书 OAuth 流程
 
-### Security Measures
-
-- Passwords hashed with bcrypt
-- API keys generated using UUID + random string
-- Session expiration: 7 days
-- Automatic token refresh on expiration
-
-## Publishing Flow
-
-### Immediate Publishing Process
+**配置：**
+- 授权 URL：`https://open.xiaohongshu.com/oauth/authorize`
+- 令牌 URL：`https://open.xiaohongshu.com/oauth/access_token`
+- 必需权限：`write_public`（发布内容）、`read_public`（读取用户信息）
+- 令牌有效期：通常 30 天（可通过 refresh_token 配置）
 
 ```
-1. Receive publish request (API or Web)
+用户点击"授权小红书"
+  → 重定向到小红书授权页面（带 client_id 和 redirect_uri）
+  → 用户同意授权
+  → 小红书重定向到 /xiaohongshu/callback?code=xxx&state=xxx
+  → 后端验证 state 参数（CSRF 保护）
+  → 后端使用 code 向令牌端点 POST 请求获取 access_token
+  → 将 access_token、refresh_token、expires_at 存储到数据库
+  → 重定向到仪表盘并显示成功消息
+```
+
+**令牌刷新策略：**
+- 每次 API 调用前检查令牌过期时间
+- 如果过期，使用 refresh_token 获取新的 access_token
+- 如果刷新失败，通知用户重新授权
+- 刷新操作最多重试 3 次
+
+### 安全措施
+
+- 密码使用 bcrypt 哈希
+- API Key 使用 UUID + 随机字符串生成
+- Session 过期时间：7天
+- 令牌过期时自动刷新
+
+## 发布流程
+
+### 立即发布流程
+
+```
+1. 接收发布请求（API 或 Web）
    ↓
-2. Validate API Key / Session
+2. 验证 API Key / Session
    ↓
-3. Verify user has authorized Xiaohongshu
+3. 验证用户已授权小红书
    ↓
-4. Validate content format and size limits
+4. 验证内容格式和大小限制
    ↓
-5. Call Xiaohongshu API to publish
+5. 调用小红书 API 发布
    ↓
-6. Record result to database
+6. 记录结果到数据库
    ↓
-7. Return response
+7. 返回响应
 ```
 
-### Media File Handling
+### 媒体文件处理
 
-**Images:**
-- Frontend uploads directly to Qiniu/Tencent Cloud
-- Returns CDN URL
-- Backend only stores URL
-- Supported formats: JPEG, PNG, WEBP
-- Size limit: 10MB per image
-- Maximum 9 images per post (Xiaohongshu limit)
+**图片：**
+- 前端直接上传到七牛云/腾讯云
+- 返回 CDN URL
+- 后端只存储 URL
+- 支持格式：JPEG、PNG、WEBP
+- 大小限制：每张图片 10MB
+- 最多 9 张图片（小红书限制）
 
-**Videos:**
-- Frontend uploads directly to Qiniu/Tencent Cloud
-- Returns CDN URL
-- Validate format (MP4) and size (100MB limit)
-- Duration limit: 5 minutes (Xiaohongshu recommendation)
-- Resolution: 720p minimum, 1080p recommended
-- Aspect ratio: 9:16 (vertical) or 1:1 (square)
+**视频：**
+- 前端直接上传到七牛云/腾讯云
+- 返回 CDN URL
+- 验证格式（MP4）和大小（100MB 限制）
+- 时长限制：5分钟（小红书建议）
+- 分辨率：最低 720p，推荐 1080p
+- 纵横比：9:16（竖屏）或 1:1（方形）
 
-**Chinese Platform Content Requirements:**
-- Text length: 1-1000 characters
-- Hashtags: Maximum 30 tags per post
-- No external links (platform policy)
-- Watermark detection: Videos may be rejected if heavily watermarked
+**国内平台内容要求：**
+- 文字长度：1-1000 字符
+- 话题标签：每条最多 30 个
+- 不允许外部链接（平台政策）
+- 水印检测：带明显水印的视频可能被拒绝
 
-### Error Handling
+### 错误处理
 
-| Error Scenario | HTTP Status | Handling Strategy |
-|----------------|-------------|-------------------|
-| Not authorized | 401 | Return error with link to authorize page |
-| Token expired | 401 | Auto-refresh and retry once |
-| Invalid API Key | 403 | Log attempt, return generic error |
-| Invalid content | 400 | Specific validation error message |
-| Media too large | 413 | Return max size allowed |
-| Content violation | 422 | Return platform rejection reason |
-| Network timeout | 504 | Retry 3 times with exponential backoff |
-| Platform unavailable | 503 | Retry after 60 seconds |
-| Rate limit (429) | 429 | Delay using Retry-After header, retry once |
-| Refresh token failed | 401 | Mark auth as invalid, notify user to re-authorize |
-| Platform API error | 502 | Log error details, return generic message |
+| 错误场景 | HTTP 状态 | 处理策略 |
+|----------|-----------|----------|
+| 未授权 | 401 | 返回错误并附上授权页面链接 |
+| 令牌过期 | 401 | 自动刷新并重试一次 |
+| API Key 无效 | 403 | 记录尝试，返回通用错误 |
+| 内容无效 | 400 | 返回具体的验证错误信息 |
+| 媒体过大 | 413 | 返回允许的最大大小 |
+| 内容违规 | 422 | 返回平台拒绝原因 |
+| 网络超时 | 504 | 使用指数退避重试 3 次 |
+| 平台不可用 | 503 | 60秒后重试 |
+| 速率限制 (429) | 429 | 使用 Retry-After 头延迟，重试一次 |
+| 刷新令牌失败 | 401 | 标记授权无效，通知用户重新授权 |
+| 平台 API 错误 | 502 | 记录错误详情，返回通用消息 |
 
-**Retry Policy:**
-- Maximum retry attempts: 3
-- Backoff strategy: Exponential (1s, 2s, 4s)
-- Don't retry: Client errors (4xx except 429)
-- Retry: Server errors (5xx) and network failures
+**重试策略：**
+- 最大重试次数：3次
+- 退避策略：指数退避（1秒、2秒、4秒）
+- 不重试：客户端错误（4xx 除 429 外）
+- 重试：服务器错误（5xx）和网络故障
 
-## Database Migration Strategy
+## 数据库迁移策略
 
-**Tool:** Alembic
+**工具：** Alembic
 
-**Migration Workflow:**
+**迁移工作流：**
 ```bash
-# Create new migration
-alembic revision --autogenerate -m "description"
+# 创建新迁移
+alembic revision --autogenerate -m "描述"
 
-# Apply migrations
+# 应用迁移
 alembic upgrade head
 
-# Rollback one migration
+# 回滚一个迁移
 alembic downgrade -1
 ```
 
-**Migration Policy:**
-- Never modify existing migrations (create new ones)
-- Test migrations on development database first
-- Backup production database before applying migrations
-- Use `--autogenerate` for simple schema changes
-- Manual migrations for complex data transformations
+**迁移策略：**
+- 永不修改现有迁移（创建新的）
+- 先在开发数据库上测试迁移
+- 应用迁移前备份生产数据库
+- 简单模式变更使用 `--autogenerate`
+- 复杂数据转换使用手动迁移
 
-**Data Backup Strategy:**
-- Development: SQLite file copied daily
-- Production: Supabase/Neon automatic backups (7-day retention)
-- Export schema and data weekly: `pg_dump` or SQLite `.dump`
+**数据备份策略：**
+- 开发环境：SQLite 文件每日复制
+- 生产环境：Supabase/Neon 自动备份（7天保留）
+- 每周导出架构和数据：`pg_dump` 或 SQLite `.dump`
 
-## Security Hardening
+## 安全加固
 
-### Authentication Security
-- Password hashing: bcrypt with 12 rounds
-- API Key format: `pk_live_{random_32_chars}` or `pk_test_{random_32_chars}`
-- Session cookie: `Secure`, `HttpOnly`, `SameSite=Strict`
-- Rate limiting per IP: 100 requests/minute for auth endpoints
+### 认证安全
+- 密码哈希：bcrypt 12 轮
+- API Key 格式：`pk_live_{随机32字符}` 或 `pk_test_{随机32字符}`
+- Session cookie：`Secure`、`HttpOnly`、`SameSite=Strict`
+- 每个 IP 的速率限制：认证端点 100 请求/分钟
 
-### Input Validation
-- Username: 3-50 alphanumeric characters only
-- Password: Minimum 8 characters (enforced on frontend and backend)
-- API Key validation: Format check before database query
-- Content sanitization: Strip HTML tags, escape special characters
+### 输入验证
+- 用户名：3-50 个字母数字字符
+- 密码：最少 8 个字符（前端和后端都强制）
+- API Key 验证：数据库查询前进行格式检查
+- 内容清理：去除 HTML 标签，转义特殊字符
 
-### CSRF Protection
-- All state-changing web forms require CSRF token
-- Token stored in session, validated on POST
-- AJAX requests include `X-CSRF-Token` header
+### CSRF 保护
+- 所有状态变更的 Web 表单都需要 CSRF 令牌
+- 令牌存储在 session 中，POST 时验证
+- AJAX 请求包含 `X-CSRF-Token` 头
 
-### API Security
-- API Key validated against database for each request
-- Last-used timestamp updated on successful auth
-- Failed auth attempts logged (monitor for abuse)
-- CORS configured for specific domains only
+### API 安全
+- 每次请求都从数据库验证 API Key
+- 成功认证时更新最后使用时间戳
+- 记录失败的认证尝试（监控滥用）
+- 为特定域名配置 CORS
 
-### Secrets Management
-- Never commit `.env` files
-- Use environment variables for all secrets
-- Railway: Use secret management (never in public repo)
+### 密钥管理
+- 永不提交 `.env` 文件
+- 所有密钥使用环境变量
+- Railway：使用密钥管理（绝不放在公开仓库）
 
-## API Rate Limiting
+## API 速率限制
 
-### Rate Limit Strategy
+### 速率限制策略
 
-**Implementation:** Redis-based rate limiting with sliding window
+**实现方式：** 基于Redis的滑动窗口速率限制
 
-**Limits by Endpoint Type:**
+**各端点类型的限制：**
 
-| Endpoint Type | Rate Limit | Window |
-|---------------|------------|--------|
-| Authentication (login, register) | 10 requests | per IP per minute |
-| API Key creation | 5 requests | per user per hour |
-| Publish API | 60 requests | per API key per minute |
-| Query API (posts history) | 100 requests | per API key per minute |
-| Web dashboard | 120 requests | per session per minute |
+| 端点类型 | 速率限制 | 时间窗口 |
+|----------|----------|----------|
+| 认证（登录、注册） | 10 请求 | 每 IP 每分钟 |
+| API Key 创建 | 5 请求 | 每用户每小时 |
+| 发布 API | 60 请求 | 每 API Key 每分钟 |
+| 查询 API（发布历史） | 100 请求 | 每 API Key 每分钟 |
+| Web 仪表盘 | 120 请求 | 每会话每分钟 |
 
-### Rate Limit Response
+### 速率限制响应
 
-When rate limit is exceeded:
+超出速率限制时：
 ```json
 {
   "success": false,
   "error": {
     "code": "RATE_LIMITED",
-    "message": "Rate limit exceeded",
+    "message": "超出速率限制",
     "details": {
       "limit": 60,
       "remaining": 0,
@@ -480,7 +480,7 @@ When rate limit is exceeded:
 }
 ```
 
-HTTP Headers:
+HTTP 头：
 ```
 X-RateLimit-Limit: 60
 X-RateLimit-Remaining: 0
@@ -488,230 +488,230 @@ X-RateLimit-Reset: 1678966860
 Retry-After: 30
 ```
 
-### Implementation Notes
-- Rate limit keys format: `ratelimit:{endpoint}:{identifier}` (e.g., `ratelimit:publish:pk_live_abc123`)
-- Use Redis INCR with TTL for atomic operations
-- Rate limits are configurable via environment variables
+### 实现说明
+- 速率限制键格式：`ratelimit:{端点}:{标识符}`（如 `ratelimit:publish:pk_live_abc123`）
+- 使用 Redis INCR 和 TTL 进行原子操作
+- 速率限制可通过环境变量配置
 
-### Chinese Platform Content Moderation
+### 国内平台内容审核
 
-**Important:** While this MVP does not include automated sensitive content filtering, the following guidelines are documented for future implementation and user awareness.
+**重要说明：** 虽然 MVP 不包含自动化敏感内容过滤，但以下指南已记录在案，供未来实施和用户了解。
 
-### Prohibited Content Categories
+### 禁止内容类别
 
-**Legal Requirements (China):**
-- Content violating national laws and regulations
-- Pornographic or vulgar material
-- False information or rumors
-- Content endangering national security
-- Violence or terrorism-related content
+**法律要求（中国）：**
+- 违反国家法律法规的内容
+- 色情或低俗材料
+- 虚假信息或谣言
+- 危害国家安全的内容
+- 暴力或恐怖主义相关内容
 
-**Platform-Specific Rules:**
-- Xiaohongshu: No promotional links, no excessive hashtags
-- All platforms: No external links in posts (platform policy)
+**平台特定规则：**
+- 小红书：不允许推广链接、不允许过多话题标签
+- 所有平台：帖子中不允许外部链接（平台政策）
 
-### Recommended Pre-Publication Checks
+### 推荐的发布前检查
 
-**For User Content:**
-1. Text length validation (1-1000 characters)
-2. Image format and size validation
-3. Video format, size, and duration validation
-4. Strip HTML tags from text content
-5. Escape special characters
+**用户内容：**
+1. 文字长度验证（1-1000 字符）
+2. 图片格式和大小验证
+3. 视频格式、大小和时长验证
+4. 从文字内容中去除 HTML 标签
+5. 转义特殊字符
 
-**Future Enhancement - Automated Filtering:**
-- Integration with content moderation APIs (Aliyun, Tencent Cloud)
-- Keyword-based filtering
-- Image recognition for inappropriate content
-- Manual review queue for flagged content
+**未来增强 - 自动化过滤：**
+- 集成内容审核 API（阿里云、腾讯云）
+- 基于关键词的过滤
+- 不当内容的图像识别
+- 标记内容的审核队列
 
-### User Responsibility
+### 用户责任
 
-Users are responsible for:
-- Ensuring their content complies with Chinese laws
-- Following platform-specific content guidelines
-- Understanding that violating content may result in:
-  - Post rejection by platform
-  - Account suspension
-  - Legal consequences
+用户负责：
+- 确保其内容符合中国法律
+- 遵循平台特定的内容指南
+- 了解违规内容可能导致：
+  - 平台拒绝发布
+  - 账号暂停
+  - 法律后果
 
-**Disclaimer Displayed on Publish:**
-"Users are responsible for ensuring their content complies with all applicable laws and platform guidelines."
+**发布时显示的免责声明：**
+"用户负责确保其内容符合所有适用法律和平台指南。"
 
-## Performance Considerations
+## 性能考虑
 
-### Database Indexing
+### 数据库索引
 ```sql
--- Users table
+-- 用户表
 CREATE INDEX idx_users_username ON users(username);
 
--- API Keys table
+-- API Keys 表
 CREATE INDEX idx_api_keys_key ON api_keys(key);
 CREATE INDEX idx_api_keys_user_id ON api_keys(user_id);
 
--- Xiaohongshu Auth table
+-- 小红书授权表
 CREATE INDEX idx_xiaohongshu_auth_user_id ON xiaohongshu_auth(user_id);
 
--- Posts table
+-- 发布记录表
 CREATE INDEX idx_posts_user_id ON posts(user_id);
 CREATE INDEX idx_posts_status ON posts(status);
 CREATE INDEX idx_posts_created_at ON posts(created_at DESC);
 ```
 
-### Caching Strategy
-- User sessions: Redis with 7-day TTL
-- API Key validation: Cache frequently used keys (5-minute TTL)
-- Xiaohongshu auth status: Cache until token expires
+### 缓存策略
+- 用户会话：Redis，7天 TTL
+- API Key 验证：缓存常用 Key（5分钟 TTL）
+- 小红书授权状态：缓存直到令牌过期
 
-### Async Operations
-- All database queries use SQLAlchemy async
-- External API calls (Xiaohongshu) are async with httpx
-- File uploads to cloud storage are async
+### 异步操作
+- 所有数据库查询使用 SQLAlchemy 异步
+- 外部 API 调用（小红书）使用 httpx 异步
+- 云存储文件上传是异步的
 
-### Response Optimization
-- Pagination for list endpoints (default: 20 items, max: 100)
-- Database query result limits enforced
-- Compression enabled for API responses (gzip)
+### 响应优化
+- 列表端点分页（默认 20 项，最多 100）
+- 强制执行数据库查询结果限制
+- API 响应启用压缩（gzip）
 
-## Technology Stack
+## 技术栈
 
-### Backend Core Dependencies
+### 后端核心依赖
 
 ```
-fastapi              # Web framework
-uvicorn              # ASGI server
+fastapi              # Web 框架
+uvicorn              # ASGI 服务器
 sqlalchemy           # ORM
-alembic              # Database migrations
-pydantic             # Data validation
-passlib[bcrypt]      # Password hashing
-python-multipart     # File uploads
-httpx                # HTTP client (Xiaohongshu API)
-redis                # Redis client
-qiniu                # Qiniu cloud SDK
+alembic              # 数据库迁移
+pydantic             # 数据验证
+passlib[bcrypt]      # 密码哈希
+python-multipart     # 文件上传
+httpx                # HTTP 客户端（小红书 API）
+redis                # Redis 客户端
+qiniu                # 七牛云 SDK
 ```
 
-### Development Dependencies
+### 开发依赖
 
 ```
-pytest               # Testing
-pytest-asyncio       # Async testing
-black                # Code formatting
-ruff                 # Code linting
+pytest               # 测试
+pytest-asyncio       # 异步测试
+black                # 代码格式化
+ruff                 # 代码检查
 ```
 
-### Environment Variables
+### 环境变量
 
 ```env
-# Application
+# 应用配置
 APP_NAME=Publify
 APP_ENV=development
 SECRET_KEY=your-secret-key-here
 
-# Database
+# 数据库
 DATABASE_URL=sqlite:///./publify.db
 
 # Redis
 REDIS_URL=redis://localhost:6379
 
-# Qiniu Cloud (Development)
+# 七牛云（开发环境）
 QINIU_ACCESS_KEY=your-access-key
 QINIU_SECRET_KEY=your-secret-key
 QINIU_BUCKET=your-bucket-name
 QINIU_DOMAIN=https://cdn.example.com
 
-# Xiaohongshu (To be filled)
+# 小红书（待填写）
 XIAOHONGSHU_CLIENT_ID=
 XIAOHONGSHU_CLIENT_SECRET=
 XIAOHONGSHU_REDIRECT_URI=http://localhost:8000/xiaohongshu/callback
 ```
 
-## Operational Monitoring
+## 运维监控
 
-### Metrics to Track
+### 需要跟踪的指标
 
-**Application Metrics:**
-- Request count by endpoint
-- Response time percentiles (p50, p95, p99)
-- Error rate by endpoint
-- Active user count
-- Publishing success/failure rate by platform
+**应用指标：**
+- 各端点请求数
+- 响应时间百分位数（p50、p95、p99）
+- 各端点错误率
+- 活跃用户数
+- 各平台发布成功/失败率
 
-**Business Metrics:**
-- Total posts published
-- Posts by platform
-- Posts by content type (text/image/video)
-- API keys created/active
+**业务指标：**
+- 总发布数
+- 各平台发布数
+- 各内容类型发布数（文字/图片/视频）
+- 创建/活跃的 API Keys
 
-**Infrastructure Metrics:**
-- CPU usage
-- Memory usage
-- Database connection pool utilization
-- Redis memory usage
+**基础设施指标：**
+- CPU 使用率
+- 内存使用率
+- 数据库连接池利用率
+- Redis 内存使用率
 
-### Monitoring Setup
+### 监控设置
 
-**Development:**
-- Log to console with structured JSON
-- Manual monitoring of logs
+**开发环境：**
+- 以结构化 JSON 格式记录到控制台
+- 手动监控日志
 
-**Production (Railway):**
-- Railway built-in metrics (CPU, memory)
-- Log streaming via Railway CLI
-- Error tracking via Sentry (optional, free tier)
+**生产环境（Railway）：**
+- Railway 内置指标（CPU、内存）
+- 通过 Railway CLI 进行日志流式传输
+- 通过 Sentry 进行错误跟踪（可选，免费层）
 
-### Alerting Strategy
+### 告警策略
 
-**Critical Alerts (immediate):**
-- Application crash (Railway auto-restarts)
-- Database connection failures
-- Redis connection failures
+**关键告警（立即）：**
+- 应用崩溃（Railway 自动重启）
+- 数据库连接失败
+- Redis 连接失败
 
-**Warning Alerts (daily check):**
-- Error rate > 5%
-- Response time p95 > 2s
-- Publishing failure rate > 10%
+**警告告警（每日检查）：**
+- 错误率 > 5%
+- 响应时间 p95 > 2秒
+- 发布失败率 > 10%
 
-### Log Retention
+### 日志保留
 
-- Development: Unlimited (local disk)
-- Production: 7 days (Railway logs)
-- Export logs monthly for long-term storage
+- 开发环境：无限制（本地磁盘）
+- 生产环境：7天（Railway 日志）
+- 每月导出日志进行长期存储
 
-### Health Check Endpoint
+### 健康检查端点
 
 ```
 GET /health
-Response: {"status": "ok", "version": "1.0.0"}
+响应：{"status": "ok", "version": "1.0.0"}
 ```
 
-Checks:
-- Database connectivity
-- Redis connectivity
-- External service status (Xiaohongshu API - optional)
+检查项：
+- 数据库连接性
+- Redis 连接性
+- 外部服务状态（小红书 API - 可选）
 
-## Logging Strategy
+## 日志策略
 
-- **Request logs**: All API requests (path, method, response time)
-- **Error logs**: All errors with stack traces
-- **Publish logs**: All publish operations (user, platform, result)
-- **Log levels**: DEBUG (development), INFO (production)
+- **请求日志：** 所有 API 请求（路径、方法、响应时间）
+- **错误日志：** 所有错误及堆栈跟踪
+- **发布日志：** 所有发布操作（用户、平台、结果）
+- **日志级别：** DEBUG（开发）、INFO（生产）
 
-## Deployment
+## 部署
 
-### Local Development
+### 本地开发
 
 ```bash
-# Install dependencies
+# 安装依赖
 pip install -r requirements.txt
 
-# Start Redis
+# 启动 Redis
 docker run -d -p 6379:6379 redis
 
-# Run development server
+# 运行开发服务器
 uvicorn app.main:app --reload --port 8000
 ```
 
-### Railway Deployment
+### Railway 部署
 
 ```json
 {
@@ -724,77 +724,77 @@ uvicorn app.main:app --reload --port 8000
 }
 ```
 
-**Environment Variables on Railway:**
-- `DATABASE_URL`: Railway Postgres
-- `REDIS_URL`: Railway Redis
-- `QINIU_*`: Qiniu credentials
+**Railway 上的环境变量：**
+- `DATABASE_URL`：Railway Postgres
+- `REDIS_URL`：Railway Redis
+- `QINIU_*`：七牛云凭据
 
-## Testing Strategy
+## 测试策略
 
-### Unit Tests
-- Authentication logic
-- Data validation
-- Xiaohongshu API calls (mocked)
+### 单元测试
+- 认证逻辑
+- 数据验证
+- 小红书 API 调用（模拟）
 
-### Integration Tests
-- API end-to-end tests
-- OAuth flow (mocked)
+### 集成测试
+- API 端到端测试
+- OAuth 流程（模拟）
 
-### Manual Testing
-- Frontend UI
+### 手动测试
+- 前端 UI
 
-## Cost Analysis
+## 成本分析
 
-### Development Phase
-- Domain: ¥0 (use localhost)
-- Server: ¥0 (local development)
-- Database: ¥0 (SQLite)
-- Storage: ¥0 (Qiniu free tier)
-- Redis: ¥0 (local Docker)
+### 开发阶段
+- 域名：¥0（使用 localhost）
+- 服务器：¥0（本地开发）
+- 数据库：¥0（SQLite）
+- 存储：¥0（七牛云免费层）
+- Redis：¥0（本地 Docker）
 
-### Production Phase (100 Monthly Active Users)
-- Server (Railway): ~¥0-50/month (free tier)
-- Database (Supabase/Neon): ¥0 (free tier)
-- Storage (Qiniu/Tencent): ~¥4/month
-- Redis (Upstash): ¥0 (free tier)
-- **Total: ~¥4/month**
+### 生产阶段（100 月活用户）
+- 服务器（Railway）：约 ¥0-50/月（免费层）
+- 数据库（Supabase/Neon）：¥0（免费层）
+- 存储（七牛云/腾讯云）：约 ¥4/月
+- Redis（Upstash）：¥0（免费层）
+- **总计：约 ¥4/月**
 
-## Future Phases
+## 后续阶段
 
-### Phase 2: Additional Platforms
-- Weibo
-- Bilibili
-- Douyin
+### 阶段 2：更多平台
+- 微博
+- B站
+- 抖音
 
-### Phase 3: Advanced Features
-- Sensitive content filtering
-- Scheduled publishing
-- Webhook notifications
-- API rate limiting
+### 阶段 3：高级功能
+- 敏感内容过滤
+- 定时发布
+- Webhook 通知
+- API 速率限制
 
-### Phase 4: Ecosystem
+### 阶段 4：生态系统
 - Python SDK
-- Dify integration plugin
-- Coze integration
-- FastGPT integration
+- Dify 集成插件
+- Coze 集成
+- FastGPT 集成
 
-## Risks and Mitigations
+## 风险与缓解
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Platform API changes | High | Regular monitoring, flexible architecture |
-| Content regulation changes | High | Compliance monitoring, content filtering |
-| OAuth token expiration | Medium | Auto-refresh mechanism |
-| High concurrent load | Medium | Redis queue, rate limiting |
-| Storage cost overruns | Low | Monitoring, size limits |
+| 风险 | 影响 | 缓解措施 |
+|------|------|----------|
+| 平台 API 变化 | 高 | 定期监控，灵活架构 |
+| 内容监管变化 | 高 | 合规监控，内容过滤 |
+| OAuth 令牌过期 | 中 | 自动刷新机制 |
+| 高并发负载 | 中 | Redis 队列，速率限制 |
+| 存储成本超支 | 低 | 监控，大小限制 |
 
-## Success Criteria
+## 成功标准
 
-- [ ] Users can register and login
-- [ ] Users can generate API keys
-- [ ] Users can authorize Xiaohongshu account
-- [ ] API can publish text content to Xiaohongshu
-- [ ] API can publish images to Xiaohongshu
-- [ ] API can publish videos to Xiaohongshu
-- [ ] Users can view publishing history
-- [ ] Application deployed on Railway
+- [ ] 用户可以注册和登录
+- [ ] 用户可以生成 API Keys
+- [ ] 用户可以授权小红书账号
+- [ ] API 可以发布文字内容到小红书
+- [ ] API 可以发布图片到小红书
+- [ ] API 可以发布视频到小红书
+- [ ] 用户可以查看发布历史
+- [ ] 应用部署到 Railway
