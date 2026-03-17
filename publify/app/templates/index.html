@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Publify - AI Publishing for Chinese Social Media{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>Welcome to Publify</h1>
+    <p class="hero-subtitle">Publish content to Chinese social media platforms via API</p>
+
+    <div class="cta-buttons">
+        <a href="/auth/register" class="btn btn-primary">Get Started</a>
+        <a href="/auth/login" class="btn btn-secondary">Sign In</a>
+    </div>
+
+    <div class="features">
+        <div class="feature">
+            <h3>Easy Integration</h3>
+            <p>Simple REST API for AI agents and applications</p>
+        </div>
+        <div class="feature">
+            <h3>Multiple Platforms</h3>
+            <p>Support for Xiaohongshu and more coming soon</p>
+        </div>
+        <div class="feature">
+            <h3>Secure & Reliable</h3>
+            <p>API key authentication and OAuth flow</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

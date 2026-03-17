@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}API Key Created - Publify{% endblock %}
+
+{% block content %}
+<div class="api-key-created">
+    <div class="success-card">
+        <div class="success-icon">✓</div>
+        <h1>API Key Created Successfully</h1>
+        <p class="warning">Please copy this key now. You won't be able to see it again!</p>
+
+        <div class="key-display">
+            <code>{{ api_key.key }}</code>
+            <button onclick="copyKey()" class="btn btn-small">Copy</button>
+        </div>
+
+        <div class="key-details">
+            <p><strong>Name:</strong> {{ api_key.name }}</p>
+            <p><strong>Created:</strong> {{ api_key.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+        </div>
+
+        <div class="usage-example">
+            <h3>Usage Example</h3>
+            <pre><code>curl -X POST "https://your-domain.com/api/v1/publish" \
+  -H "Authorization: Bearer {{ api_key.key }}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "platform": "xiaohongshu",
+    "content_type": "text",
+    "text": "Hello from Publify!"
+  }'</code></pre>
+        </div>
+
+        <div class="actions">
+            <a href="/api-keys" class="btn btn-secondary">Back to API Keys</a>
+            <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+function copyKey() {
+    const key = '{{ api_key.key }}';
+    navigator.clipboard.writeText(key).then(() => {
+        alert('API key copied to clipboard!');
+    });
+}
+</script>
+{% endblock %}
+{% endblock %}

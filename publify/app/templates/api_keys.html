@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}API Keys - Publify{% endblock %}
+
+{% block content %}
+<div class="api-keys-page">
+    <div class="page-header">
+        <h1>API Keys</h1>
+        <button onclick="showCreateModal()" class="btn btn-primary">Create API Key</button>
+    </div>
+
+    <div class="info-box">
+        <h4>About API Keys</h4>
+        <p>API keys allow your applications to publish content on your behalf. Keep them secure and never share them publicly.</p>
+    </div>
+
+    {% if api_keys %}
+    <div class="api-keys-list">
+        {% for key in api_keys %}
+        <div class="api-key-card">
+            <div class="key-info">
+                <h3>{{ key.name }}</h3>
+                <code class="key-value">{{ key.key[:8] }}...{{ key.key[-8:] }}</code>
+                <p class="key-meta">
+                    Created: {{ key.created_at.strftime('%Y-%m-%d') }}
+                    {% if key.last_used %}
+                    | Last used: {{ key.last_used.strftime('%Y-%m-%d %H:%M') }}
+                    {% endif %}
+                </p>
+            </div>
+            <div class="key-actions">
+                {% if key.is_active %}
+                <span class="status-badge active">Active</span>
+                {% else %}
+                <span class="status-badge inactive">Inactive</span>
+                {% endif %}
+                {% if key.is_active %}
+                <form action="/api-keys/{{ key.id }}/revoke" method="post"
+                      onsubmit="return confirm('Are you sure you want to revoke this API key?')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-danger btn-small">Revoke</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>No API Keys Yet</h3>
+        <p>Create an API key to start publishing content via the REST API.</p>
+        <button onclick="showCreateModal()" class="btn btn-primary">Create Your First API Key</button>
+    </div>
+    {% endif %}
+
+    <div id="createModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create API Key</h2>
+                <button onclick="hideCreateModal()" class="close-btn">&times;</button>
+            </div>
+            <form method="post" action="/api-keys">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="form-group">
+                    <label for="name">API Key Name</label>
+                    <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        required
+                        placeholder="e.g., My Application"
+                        maxlength="100"
+                    >
+                    <small>A descriptive name to help you identify this key</small>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" onclick="hideCreateModal()" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+function showCreateModal() {
+    document.getElementById('createModal').style.display = 'block';
+}
+
+function hideCreateModal() {
+    document.getElementById('createModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('createModal');
+    if (event.target === modal) {
+        hideCreateModal();
+    }
+}
+</script>
+{% endblock %}
+{% endblock %}

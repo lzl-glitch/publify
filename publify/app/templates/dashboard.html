@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Publify{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <h1>Welcome, {{ user.username }}!</h1>
+        <p>Manage your API keys and publish content to social media</p>
+    </div>
+
+    {% if authorized %}
+    <div class="alert alert-success">
+        Xiaohongshu authorization successful!
+    </div>
+    {% endif %}
+
+    {% if errors %}
+    <div class="alert alert-error">
+        <ul>
+            {% for error in errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Total Posts</h3>
+            <p class="stat-value">{{ total_posts }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Successful</h3>
+            <p class="stat-value">{{ success_posts }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>API Keys</h3>
+            <p class="stat-value">{{ api_keys | length }}</p>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <div class="card-header">
+                <h2>API Keys</h2>
+                <a href="/api-keys" class="btn btn-small">Manage</a>
+            </div>
+            <div class="card-body">
+                {% if api_keys %}
+                <ul class="api-key-list">
+                    {% for key in api_keys[:3] %}
+                    <li>
+                        <span class="key-name">{{ key.name }}</span>
+                        <span class="key-preview">{{ key.key[:20] }}...</span>
+                    </li>
+                    {% endfor %}
+                    {% if api_keys | length > 3 %}
+                    <li><a href="/api-keys">View all ({{ api_keys | length }})</a></li>
+                    {% endif %}
+                </ul>
+                {% else %}
+                <p>No API keys yet. <a href="/api-keys">Create your first API key</a></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Platform Authorization</h2>
+            </div>
+            <div class="card-body">
+                {% if xiaohongshu_authorized %}
+                <div class="platform-status authorized">
+                    <span class="status-dot"></span>
+                    <span>Xiaohongshu Authorized</span>
+                </div>
+                {% else %}
+                <div class="platform-status unauthorized">
+                    <span class="status-dot"></span>
+                    <span>Xiaohongshu Not Authorized</span>
+                </div>
+                <form action="/xiaohongshu/auth" method="get">
+                    <button type="submit" class="btn btn-primary">Authorize Xiaohongshu</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Recent Posts</h2>
+                <a href="/posts" class="btn btn-small">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_posts %}
+                <ul class="post-list">
+                    {% for post in recent_posts %}
+                    <li>
+                        <span class="post-platform">{{ post.platform }}</span>
+                        <span class="post-type">{{ post.content_type }}</span>
+                        <span class="post-status status-{{ post.status }}">{{ post.status }}</span>
+                        <span class="post-date">{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p>No posts yet. Use the API to publish content.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

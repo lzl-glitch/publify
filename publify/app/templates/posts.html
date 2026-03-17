@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Posts - Publify{% endblock %}
+
+{% block content %}
+<div class="posts-page">
+    <div class="page-header">
+        <h1>Publish History</h1>
+        <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+
+    {% if posts %}
+    <div class="posts-list">
+        {% for post in posts %}
+        <div class="post-card">
+            <div class="post-header">
+                <span class="post-platform">{{ post.platform }}</span>
+                <span class="post-type">{{ post.content_type }}</span>
+                <span class="post-status status-{{ post.status }}">
+                    {% if post.status == 'success' %}Published
+                    {% elif post.status == 'failed' %}Failed
+                    {% else %}Pending
+                    {% endif %}
+                </span>
+            </div>
+            <div class="post-content">
+                <p>{{ post.content[:200] }}{% if post.content | length > 200 %}...{% endif %}</p>
+            </div>
+            {% if post.get_media_urls() %}
+            <div class="post-media">
+                {% for url in post.get_media_urls()[:3] %}
+                <a href="{{ url }}" target="_blank" class="media-link">{{ url }}</a>
+                {% endfor %}
+                {% if post.get_media_urls() | length > 3 %}
+                <span>+{{ post.get_media_urls() | length - 3 }} more</span>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% if post.error_message %}
+            <div class="post-error">
+                <strong>Error:</strong> {{ post.error_message }}
+            </div>
+            {% endif %}
+            <div class="post-footer">
+                <span class="post-date">{{ post.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                <span class="post-id">ID: {{ post.id }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        {% if page > 1 %}
+        <a href="/posts?page={{ page - 1 }}" class="btn btn-small">Previous</a>
+        {% endif %}
+
+        <span class="pagination-info">Page {{ page }} of {{ total_pages }}</span>
+
+        {% if page < total_pages %}
+        <a href="/posts?page={{ page + 1 }}" class="btn btn-small">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <h3>No Posts Yet</h3>
+        <p>Use the REST API to publish content to social media platforms.</p>
+        <a href="/api-keys" class="btn btn-primary">Manage API Keys</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
